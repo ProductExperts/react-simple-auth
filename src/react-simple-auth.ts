@@ -51,14 +51,12 @@ export const service: IAuthenticationService = {
     const loginWindow = localWindow.open(oauthAuthorizeUrl, requestKey, windowOptionString)
     if (loginWindow) {
       localWindow.addEventListener('message', (event: MessageEvent) => {
-        console.log('got a message from popup')
         const origin = provider.getOrigin()
         if (origin && event.origin !== origin) {
           return
         }
         storage.setItem(requestKey, event.data)
         let reply: String = 'done'
-        console.log('sending reply to popup')
         // @ts-ignore
         event.source.postMessage(reply, event.origin)
       })

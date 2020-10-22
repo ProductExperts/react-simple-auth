@@ -10,9 +10,8 @@
             const requestKey = window.name
             // Update corresponding entry with the redirected url which should contain either access token or failure reason in the query parameter / hash
             window.localStorage.setItem(requestKey, window.location.href)
-            window.opener.postMessage(window.location.href, "https://example.com")
+            window.opener.postMessage(window.location.href, "https://example.com or *")
             window.addEventListener("message", (event) =>{
-                console.log(event);
                 window.close()
             });
 
