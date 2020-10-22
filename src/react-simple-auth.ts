@@ -1,23 +1,33 @@
 const sessionKey = 'session'
 
 export interface IProvider<T> {
+  getOrigin(): string | undefined
+
   buildAuthorizeUrl(): string
+
   extractError(redirectUrl: string): Error | undefined
+
   extractSession(redirectUrl: string): T
+
   validateSession(session: T): boolean
+
   getAccessToken(session: T, resourceId: string): string
+
   getSignOutUrl(redirectUrl: string): string
 }
 
 export interface IAuthenticationService {
   acquireTokenAsync<T>(provider: IProvider<T>, storage?: Storage, localWindow?: Window): Promise<T>
+
   restoreSession<T>(provider: IProvider<T>, storage?: Storage): T | undefined
+
   invalidateSession(storage?: Storage): void
+
   getAccessToken<T>(provider: IProvider<T>, resourceId: string, storage?: Storage): string
 }
 
 export const service: IAuthenticationService = {
-  acquireTokenAsync<T>(
+  acquireTokenAsync: function<T>(
     provider: IProvider<T>,
     storage: Storage = window.localStorage,
     localWindow: Window = window
@@ -39,7 +49,20 @@ export const service: IAuthenticationService = {
       .map(([key, value]) => `${key}=${value}`)
       .join(',')
     const loginWindow = localWindow.open(oauthAuthorizeUrl, requestKey, windowOptionString)
-
+    if (loginWindow) {
+      loginWindow.addEventListener('message', (event: MessageEvent) => {
+        console.log('got a message from popup')
+        const origin = provider.getOrigin()
+        if (origin && event.origin !== origin) {
+          return
+        }
+        storage.setItem(requestKey, event.data)
+        let reply: String = 'done'
+        console.log('sending reply to popup')
+        // @ts-ignore
+        event.source.postMessage(reply, event.origin)
+      })
+    }
     return new Promise<any>((resolve, reject) => {
       // Poll for when the is closed
       const checkWindow = (loginWindow: Window | null) => {
