@@ -50,7 +50,7 @@ export const service: IAuthenticationService = {
       .join(',')
     const loginWindow = localWindow.open(oauthAuthorizeUrl, requestKey, windowOptionString)
     if (loginWindow) {
-      loginWindow.addEventListener('message', (event: MessageEvent) => {
+      localWindow.addEventListener('message', (event: MessageEvent) => {
         console.log('got a message from popup')
         const origin = provider.getOrigin()
         if (origin && event.origin !== origin) {

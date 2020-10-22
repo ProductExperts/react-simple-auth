@@ -21,7 +21,8 @@ describe('Authentication Service', () => {
   }
 
   const windowMocks: { [x: string]: jest.Mock<any> } = {
-    open: jest.fn()
+    open: jest.fn(),
+    addEventListener: jest.fn()
   }
 
   const mockProvider: IProvider<{}> = providerMocks as any
