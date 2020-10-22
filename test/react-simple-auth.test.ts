@@ -36,6 +36,7 @@ describe('Authentication Service', () => {
   describe('acquireTokenAsync', () => {
     it('should call provider.buildAuthorizeUrl', async () => {
       // Arrange
+
       windowMocks.open.mockImplementation((url, requestKey, options) => {
         storageMocks.getItem.mockReturnValue('fake-redirect-url')
         return { closed: true }
