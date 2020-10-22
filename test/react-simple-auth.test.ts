@@ -41,14 +41,25 @@ describe('Authentication Service', () => {
       })
 
       // Act
-      const session = await RSA.acquireTokenAsync(
-        mockProvider,
-        mockStorage,
-        mockWindow
-      )
+      const session = await RSA.acquireTokenAsync(mockProvider, mockStorage, mockWindow)
 
       // Assert
       expect(providerMocks.buildAuthorizeUrl.mock.calls.length).toBe(1)
+    })
+
+    it('should throw error if popup windows are blocked in the browser', async () => {
+      // Arrange
+      windowMocks.open.mockReturnValue(null)
+
+      // Act
+      try {
+        await RSA.acquireTokenAsync(mockProvider, mockStorage, mockWindow)
+      } catch (e) {
+        // Assert
+        expect(() => {
+          throw e
+        }).toThrowError()
+      }
     })
 
     it('should throw error if storage for request key was undefined or empty after window was closed', async () => {
@@ -74,9 +85,7 @@ describe('Authentication Service', () => {
         return { closed: true }
       })
 
-      providerMocks.extractError.mockReturnValue(
-        new Error('invalid credentials')
-      )
+      providerMocks.extractError.mockReturnValue(new Error('invalid credentials'))
 
       // Act
       try {
@@ -105,11 +114,7 @@ describe('Authentication Service', () => {
       providerMocks.extractSession.mockReturnValue(testSession)
 
       // Act
-      const session = await RSA.acquireTokenAsync(
-        mockProvider,
-        mockStorage,
-        mockWindow
-      )
+      const session = await RSA.acquireTokenAsync(mockProvider, mockStorage, mockWindow)
 
       // Assert
       expect(providerMocks.extractSession.mock.calls.length).toBe(1)
@@ -135,11 +140,7 @@ describe('Authentication Service', () => {
       providerMocks.extractSession.mockReturnValue(testSession)
 
       // Act
-      const session = await RSA.acquireTokenAsync(
-        mockProvider,
-        mockStorage,
-        mockWindow
-      )
+      const session = await RSA.acquireTokenAsync(mockProvider, mockStorage, mockWindow)
 
       // Assert
       expect(providerMocks.extractSession.mock.calls.length).toBe(1)

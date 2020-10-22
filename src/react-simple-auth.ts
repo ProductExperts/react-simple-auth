@@ -10,18 +10,10 @@ export interface IProvider<T> {
 }
 
 export interface IAuthenticationService {
-  acquireTokenAsync<T>(
-    provider: IProvider<T>,
-    storage?: Storage,
-    localWindow?: Window
-  ): Promise<T>
+  acquireTokenAsync<T>(provider: IProvider<T>, storage?: Storage, localWindow?: Window): Promise<T>
   restoreSession<T>(provider: IProvider<T>, storage?: Storage): T | undefined
   invalidateSession(storage?: Storage): void
-  getAccessToken<T>(
-    provider: IProvider<T>,
-    resourceId: string,
-    storage?: Storage
-  ): string
+  getAccessToken<T>(provider: IProvider<T>, resourceId: string, storage?: Storage): string
 }
 
 export const service: IAuthenticationService = {
@@ -38,9 +30,7 @@ export const service: IAuthenticationService = {
     const windowOptions = {
       width,
       height,
-      left:
-        Math.floor(screen.width / 2 - width / 2) +
-        ((screen as any).availLeft || 0),
+      left: Math.floor(screen.width / 2 - width / 2) + ((screen as any).availLeft || 0),
       top: Math.floor(screen.height / 2 - height / 2)
     }
 
@@ -48,15 +38,20 @@ export const service: IAuthenticationService = {
     const windowOptionString = Object.entries(windowOptions)
       .map(([key, value]) => `${key}=${value}`)
       .join(',')
-    const loginWindow = localWindow.open(
-      oauthAuthorizeUrl,
-      requestKey,
-      windowOptionString
-    )
+    const loginWindow = localWindow.open(oauthAuthorizeUrl, requestKey, windowOptionString)
 
     return new Promise<any>((resolve, reject) => {
       // Poll for when the is closed
-      const checkWindow = (loginWindow: Window) => {
+      const checkWindow = (loginWindow: Window | null) => {
+        if (!loginWindow) {
+          reject(
+            new Error(
+              `React Simple Auth: Login window couldn't be opened, check popup permissions in the browser`
+            )
+          )
+          return
+        }
+
         // If window is still open check again later
         if (!loginWindow.closed) {
           setTimeout(() => checkWindow(loginWindow), 100)
@@ -93,10 +88,7 @@ export const service: IAuthenticationService = {
     })
   },
 
-  restoreSession<T>(
-    provider: IProvider<T>,
-    storage: Storage = window.localStorage
-  ): T | undefined {
+  restoreSession<T>(provider: IProvider<T>, storage: Storage = window.localStorage): T | undefined {
     const sessionString = storage.getItem(sessionKey)
     if (typeof sessionString !== 'string' || sessionString.length === 0) {
       return undefined
@@ -138,10 +130,8 @@ export default service
 
 function guid(): string {
   let d = new Date().getTime()
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(
-    c: string
-  ) {
-    let r = ((d + Math.random() * 16) % 16) | 0
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c: string) {
+    let r = (d + Math.random() * 16) % 16 | 0
     d = Math.floor(d / 16)
     return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
   })
