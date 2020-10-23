@@ -1,6 +1,6 @@
 {
   "name": "react-simple-auth",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "keywords": [],
   "main": "dist/react-simple-auth.umd.js",
@@ -12,7 +12,7 @@
   "author": "Matt Mazzola <mattmazzola@live.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mattmazzola/react-simple-auth"
+    "url": "https://github.com/ProductExperts/react-simple-auth"
   },
   "license": "MIT",
   "engines": {
