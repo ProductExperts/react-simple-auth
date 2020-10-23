@@ -24,6 +24,7 @@
     "build": "tsc && rollup -c rollup.config.ts && rimraf compiled && typedoc --out dist/docs --target es6 --theme minimal src",
     "postbuild": "ts-node tools/copy-static",
     "start": "tsc -w & rollup -c rollup.config.ts -w",
+    "prepare": "npm run build",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:prod": "npm run lint && npm run test -- --coverage --no-cache",
