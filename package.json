@@ -1,7 +1,7 @@
 {
-  "name": "react-simple-auth",
+  "name": "@ni2khanna/react-simple-auth",
   "version": "1.0.1",
-  "description": "",
+  "description": "[![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg)](https://github.com/prettier/prettier) [![Greenkeeper badge](https://badges.greenkeeper.io/alexjoverm/typescript-library-starter.svg)](https://greenkeeper.io/) [![Travis](https://img.shields.io/travis/alexjoverm/typescript-library-starter.svg)](https://travis-ci.org/alexjoverm/typescript-library-starter) [![Coveralls](https://img.shields.io/coveralls/alexjoverm/typescript-library-starter.svg)](https://coveralls.io/github/alexjoverm/typescript-library-starter) [![Dev Dependencies](https://david-dm.org/alexjoverm/typescript-library-starter/dev-status.svg)](https://david-dm.org/alexjoverm/typescript-library-starter?type=dev) [![Donate](https://img.shields.io/badge/donate-paypal-blue.svg)](https://paypal.me/AJoverMorales)",
   "keywords": [],
   "main": "dist/react-simple-auth.umd.js",
   "module": "dist/react-simple-auth.es5.js",
@@ -20,7 +20,7 @@
   "author": "Matt Mazzola <mattmazzola@live.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ProductExperts/react-simple-auth"
+    "url": "git+https://github.com/ProductExperts/react-simple-auth.git"
   },
   "license": "MIT",
   "engines": {
@@ -114,5 +114,13 @@
     "typedoc": "^0.19.2",
     "typescript": "^4.0.3",
     "validate-commit-msg": "^2.14.0"
-  }
+  },
+  "bugs": {
+    "url": "https://github.com/ProductExperts/react-simple-auth/issues"
+  },
+  "homepage": "https://github.com/ProductExperts/react-simple-auth#readme",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {}
 }
