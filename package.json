@@ -11,7 +11,11 @@
     "src",
     "package.json",
     "tsconfig.json",
-    "rollup.config.ts"
+    "rollup.config.ts",
+    "tools",
+    "static",
+    "test",
+    "README.md"
   ],
   "author": "Matt Mazzola <mattmazzola@live.com>",
   "repository": {
