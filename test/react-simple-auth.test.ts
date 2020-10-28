@@ -43,7 +43,7 @@ describe('Authentication Service', () => {
       })
 
       // Act
-      const session = await RSA.acquireTokenAsync(mockProvider, mockStorage, mockWindow)
+      const session = await RSA.acquireSessionAsync(mockProvider, mockStorage, mockWindow)
 
       // Assert
       expect(providerMocks.buildAuthorizeUrl.mock.calls.length).toBe(1)
@@ -55,7 +55,7 @@ describe('Authentication Service', () => {
 
       // Act
       try {
-        await RSA.acquireTokenAsync(mockProvider, mockStorage, mockWindow)
+        await RSA.acquireSessionAsync(mockProvider, mockStorage, mockWindow)
       } catch (e) {
         // Assert
         expect(() => {
@@ -70,7 +70,7 @@ describe('Authentication Service', () => {
 
       // Act
       try {
-        await RSA.acquireTokenAsync(mockProvider, mockStorage, mockWindow)
+        await RSA.acquireSessionAsync(mockProvider, mockStorage, mockWindow)
       } catch (e) {
         // Assert
         expect(() => {
@@ -91,7 +91,7 @@ describe('Authentication Service', () => {
 
       // Act
       try {
-        await RSA.acquireTokenAsync(mockProvider, mockStorage, mockWindow)
+        await RSA.acquireSessionAsync(mockProvider, mockStorage, mockWindow)
       } catch (e) {
         // Assert
         expect(providerMocks.extractError.mock.calls.length).toBe(1)
@@ -116,7 +116,7 @@ describe('Authentication Service', () => {
       providerMocks.extractSession.mockReturnValue(testSession)
 
       // Act
-      const session = await RSA.acquireTokenAsync(mockProvider, mockStorage, mockWindow)
+      const session = await RSA.acquireSessionAsync(mockProvider, mockStorage, mockWindow)
 
       // Assert
       expect(providerMocks.extractSession.mock.calls.length).toBe(1)
@@ -142,7 +142,7 @@ describe('Authentication Service', () => {
       providerMocks.extractSession.mockReturnValue(testSession)
 
       // Act
-      const session = await RSA.acquireTokenAsync(mockProvider, mockStorage, mockWindow)
+      const session = await RSA.acquireSessionAsync(mockProvider, mockStorage, mockWindow)
 
       // Assert
       expect(providerMocks.extractSession.mock.calls.length).toBe(1)
@@ -204,7 +204,7 @@ describe('Authentication Service', () => {
       storageMocks.getItem.mockReturnValue(undefined)
 
       // Act
-      const action = () => RSA.getAccessToken(mockProvider, '', mockStorage)
+      const action = () => RSA.getTokenAsync(mockProvider, '', mockStorage)
 
       // Assert
       expect(action).toThrowError()
@@ -218,7 +218,7 @@ describe('Authentication Service', () => {
       providerMocks.getAccessToken.mockReturnValue(testAccessToken)
 
       // Act
-      const accessToken = RSA.getAccessToken(mockProvider, '', mockStorage)
+      const accessToken = RSA.getTokenAsync(mockProvider, '', mockStorage)
 
       // Assert
       expect(providerMocks.getAccessToken.mock.calls.length).toBe(1)

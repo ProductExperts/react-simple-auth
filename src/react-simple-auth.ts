@@ -1,159 +1,217 @@
+import to from "./to";
+import * as querystring from "querystring";
+
 const sessionKey = 'session'
 
-export interface IProvider<T> {
-  getOrigin(): string | undefined
+export interface Session {
+    code: string | null,
+    accessToken: string | null,
+    refreshToken: string | null,
+    expiresIn: number,
+    createdAt: number
+}
 
-  buildAuthorizeUrl(): string
+export interface IProvider<T extends Session> {
+    getOrigin(): string | undefined
 
-  extractError(redirectUrl: string): Error | undefined
+    buildAuthorizeUrl(): string
 
-  extractSession(redirectUrl: string): T
+    buildTokenUrl(): string
 
-  validateSession(session: T): boolean
+    extractError(redirectUrl: string): Error | null
 
-  getAccessToken(session: T, resourceId: string): string
+    extractSession(redirectUrl: string): T
 
-  getSignOutUrl(redirectUrl: string): string
+    validateSession(session?: T): boolean
+
+    getAccessTokenAsync(session?: T): Promise<string>
+
+    getSignOutUrl(redirectUrl: string): string
+}
+
+export interface IToken<T extends Session> {
+    renewed: boolean,
+    session: T
 }
 
 export interface IAuthenticationService {
-  acquireTokenAsync<T>(provider: IProvider<T>, storage?: Storage, localWindow?: Window): Promise<T>
+    load<T extends Session>(provider: IProvider<T>, payload: any, storage?: Storage): T
 
-  restoreSession<T>(provider: IProvider<T>, storage?: Storage): T | undefined
+    acquireSessionAsync<T extends Session>(provider: IProvider<T>, storage?: Storage, localWindow?: Window): Promise<IToken<T>>
 
-  invalidateSession(storage?: Storage): void
+    accessToken<T extends Session>(provider: IProvider<T>, storage?: Storage): string | null
 
-  getAccessToken<T>(provider: IProvider<T>, resourceId: string, storage?: Storage): string
+    invalidateSession(storage?: Storage): void
+
+    sessionIsValid<T extends Session>(provider: IProvider<T>, storage?: Storage): boolean
+
+    hasSession(storage?: Storage): boolean
 }
 
-export const service: IAuthenticationService = {
-  acquireTokenAsync: function<T>(
-    provider: IProvider<T>,
-    storage: Storage = window.localStorage,
-    localWindow: Window = window
-  ): Promise<T> {
-    // Create unique request key
-    const requestKey = `react-simple-auth-request-key-${guid()}`
+class ReactSimpleAuth implements IAuthenticationService {
 
-    // Create new window set to authorize url, with unique request key, and centered options
-    const [width, height] = [500, 500]
-    const windowOptions = {
-      width,
-      height,
-      left: Math.floor(screen.width / 2 - width / 2) + ((screen as any).availLeft || 0),
-      top: Math.floor(screen.height / 2 - height / 2)
+
+    load<T extends Session>(provider: IProvider<T>, payload: any, storage: Storage = window.localStorage): T {
+        const session = provider.extractSession(querystring.stringify(payload))
+        if (session) {
+            storage.setItem(sessionKey, JSON.stringify(session))
+        }
+        return session;
     }
 
-    const oauthAuthorizeUrl = provider.buildAuthorizeUrl()
-    const windowOptionString = Object.entries(windowOptions)
-      .map(([key, value]) => `${key}=${value}`)
-      .join(',')
-    const loginWindow = localWindow.open(oauthAuthorizeUrl, requestKey, windowOptionString)
-    if (loginWindow) {
-      localWindow.addEventListener('message', (event: MessageEvent) => {
-        const origin = provider.getOrigin()
-        if (origin && event.origin !== origin) {
-          return
-        }
-        storage.setItem(requestKey, event.data)
-        let reply: String = 'done'
-        // @ts-ignore
-        event.source.postMessage(reply, event.origin)
-      })
-    }
-    return new Promise<any>((resolve, reject) => {
-      // Poll for when the is closed
-      const checkWindow = (loginWindow: Window | null) => {
-        if (!loginWindow) {
-          reject(
-            new Error(
-              `React Simple Auth: Login window couldn't be opened, check popup permissions in the browser`
-            )
-          )
-          return
-        }
-
-        // If window is still open check again later
-        if (!loginWindow.closed) {
-          setTimeout(() => checkWindow(loginWindow), 100)
-          return
-        }
-
-        const redirectUrl = storage.getItem(requestKey)
-        storage.removeItem(requestKey)
-
-        // Window was closed, but never reached the redirect.html due to user closing window or network error during authentication
-        if (typeof redirectUrl !== 'string' || redirectUrl.length === 0) {
-          reject(
-            new Error(
-              `React Simple Auth: Login window was closed by the user or authentication was incomplete and never reached final redirect page.`
-            )
-          )
-          return
-        }
-
-        // Window was closed, and reached the redirect.html; however there still might have been error during authentication, check url
-        const error = provider.extractError(redirectUrl)
-        if (error) {
-          reject(error)
-          return
-        }
-
-        // Window was closed, reached redirect.html and correctly added tokens to the url
-        const session = provider.extractSession(redirectUrl)
-        storage.setItem(sessionKey, JSON.stringify(session))
-        resolve(session)
-      }
-
-      checkWindow(loginWindow)
-    })
-  },
-
-  restoreSession<T>(provider: IProvider<T>, storage: Storage = window.localStorage): T | undefined {
-    const sessionString = storage.getItem(sessionKey)
-    if (typeof sessionString !== 'string' || sessionString.length === 0) {
-      return undefined
+    sessionIsValid<T extends Session>(provider: IProvider<T>, storage: Storage = window.localStorage): boolean {
+        const session = this.restoreSession(provider, storage);
+        return provider.validateSession(session);
     }
 
-    const session: T = JSON.parse(sessionString)
-
-    if (!provider.validateSession(session)) {
-      storage.removeItem(sessionKey)
-      return undefined
+    accessToken<T extends Session>(provider: IProvider<T>, storage: Storage = window.localStorage): string | null {
+        const session = this.restoreSession(provider, storage);
+        if (session && provider.validateSession(session)) {
+            return session.accessToken
+        }
+        return null;
     }
 
-    return session
-  },
+    acquireSessionAsync<T extends Session>(
+        provider: IProvider<T>,
+        storage: Storage = window.localStorage,
+        localWindow: Window = window,
+        renew: boolean = true
+    ): Promise<IToken<T>> {
 
-  invalidateSession(storage: Storage = window.localStorage): void {
-    storage.removeItem(sessionKey)
-  },
+        /*
+        Check if we have an existing session. If that session is valid return it
+         */
+        const existingSession = this.restoreSession(provider, storage);
+        if (existingSession) {
+            const isSessionValid = provider.validateSession(existingSession);
+            if (isSessionValid) {
+                return new Promise<any>((resolve, reject) => {
+                    resolve({
+                        session: existingSession,
+                        renewed: false
+                    });
+                });
+            }
+        }
 
-  getAccessToken<T>(
-    provider: IProvider<T>,
-    resourceId: string,
-    storage: Storage = window.localStorage
-  ): string {
-    const sessionString = storage.getItem(sessionKey)
-    if (typeof sessionString !== 'string' || sessionString.length === 0) {
-      throw new Error(
-        `You attempted to get access token for resource id: ${resourceId} from the session but the session did not exist`
-      )
+        // Create unique request key
+        const requestKey = `react-simple-auth-request-key-${guid()}`
+
+        // Create new window set to authorize url, with unique request key, and centered options
+        const [width, height] = [500, 500]
+        const windowOptions = {
+            width,
+            height,
+            left: Math.floor(screen.width / 2 - width / 2) + ((screen as any).availLeft || 0),
+            top: Math.floor(screen.height / 2 - height / 2)
+        }
+
+        const oauthAuthorizeUrl = provider.buildAuthorizeUrl()
+        const windowOptionString = Object.entries(windowOptions)
+            .map(([key, value]) => `${key}=${value}`)
+            .join(',')
+        const loginWindow = localWindow.open(oauthAuthorizeUrl, requestKey, windowOptionString)
+        if (loginWindow) {
+            localWindow.addEventListener('message', (event: MessageEvent) => {
+                const origin = provider.getOrigin()
+                if (origin && event.origin !== origin) {
+                    return
+                }
+                storage.setItem(requestKey, event.data)
+                let reply: string = 'done'
+                // @ts-ignore
+                event.source.postMessage(reply, event.origin)
+            })
+        }
+        return new Promise<any>(async (resolve, reject) => {
+            // Poll for when the is closed
+            const checkWindow = async (loginWindow: Window | null) => {
+                if (!loginWindow) {
+                    reject(
+                        new Error(
+                            `Login window couldn't be opened, check popup permissions in the browser`
+                        )
+                    )
+                    return
+                }
+
+                // If window is still open check again later
+                if (!loginWindow.closed) {
+                    setTimeout(() => checkWindow(loginWindow), 100)
+                    return
+                }
+
+                const redirectUrl = storage.getItem(requestKey)
+                storage.removeItem(requestKey)
+
+                // Window was closed, but never reached the redirect.html due to user closing window or network error during authentication
+                if (typeof redirectUrl !== 'string' || redirectUrl.length === 0) {
+                    reject(
+                        new Error(
+                            `Login window was closed by the user or authentication was incomplete and never reached final redirect page.`
+                        )
+                    )
+                    return
+                }
+
+                // Window was closed, and reached the redirect.html; however there still might have been error during authentication, check url
+                const error = provider.extractError(redirectUrl)
+                if (error) {
+                    reject(error)
+                    return
+                }
+
+                // Window was closed, reached redirect.html and correctly added tokens to the url
+                const session = provider.extractSession(redirectUrl)
+                const [err] = await to(provider.getAccessTokenAsync(session));
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                storage.setItem(sessionKey, JSON.stringify(session))
+                resolve({
+                    session: existingSession,
+                    renewed: true
+                });
+            }
+            await to(checkWindow(loginWindow))
+        });
     }
 
-    const session: T = JSON.parse(sessionString)
 
-    return provider.getAccessToken(session, resourceId)
-  }
+    restoreSession<T extends Session>(provider: IProvider<T>, storage: Storage = window.localStorage): T | undefined {
+        const sessionString = storage.getItem(sessionKey)
+        if (typeof sessionString !== 'string' || sessionString.length === 0) {
+            storage.removeItem(sessionKey);
+            return undefined
+        }
+        try {
+            return JSON.parse(sessionString)
+        } catch (e) {
+            storage.removeItem(sessionKey);
+            console.log("Session is not valid");
+        }
+        return undefined;
+    }
+
+    invalidateSession(storage: Storage = window.localStorage): void {
+        storage.removeItem(sessionKey)
+    }
+
+    hasSession(storage: Storage = window.localStorage): boolean {
+        const sessionString = storage.getItem(sessionKey)
+        return (typeof sessionString === 'string' && sessionString.length > 0)
+    }
 }
 
-export default service
+export default new ReactSimpleAuth();
 
 function guid(): string {
-  let d = new Date().getTime()
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c: string) {
-    let r = (d + Math.random() * 16) % 16 | 0
-    d = Math.floor(d / 16)
-    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
-  })
+    let d = new Date().getTime()
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c: string) {
+        let r = (d + Math.random() * 16) % 16 | 0
+        d = Math.floor(d / 16)
+        return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+    })
 }
