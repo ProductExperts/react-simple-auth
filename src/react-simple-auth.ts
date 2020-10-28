@@ -26,7 +26,7 @@ export interface IProvider<T extends Session> {
 
     getAccessTokenAsync(session?: T): Promise<string>
 
-    getSignOutUrl(redirectUrl: string): string
+    signOut(session?: T): Promise<any>
 }
 
 export interface IToken<T extends Session> {
@@ -41,7 +41,7 @@ export interface IAuthenticationService {
 
     accessToken<T extends Session>(provider: IProvider<T>, storage?: Storage): string | null
 
-    invalidateSession(storage?: Storage): void
+    invalidateSession<T extends Session>(provider: IProvider<T>, storage?: Storage): Promise<any>
 
     sessionIsValid<T extends Session>(provider: IProvider<T>, storage?: Storage): boolean
 
@@ -195,8 +195,21 @@ class ReactSimpleAuth implements IAuthenticationService {
         return undefined;
     }
 
-    invalidateSession(storage: Storage = window.localStorage): void {
-        storage.removeItem(sessionKey)
+    invalidateSession<T extends Session>(provider: IProvider<T>, storage: Storage = window.localStorage): Promise<any> {
+        const session = this.restoreSession(provider, storage);
+        if (!session) {
+            return Promise.resolve();
+        }
+
+        if (provider.signOut) {
+            return provider.signOut(session).then(() => {
+                    storage.removeItem(sessionKey)
+                }
+            )
+        }
+
+        storage.removeItem(sessionKey);
+        return Promise.resolve();
     }
 
     hasSession(storage: Storage = window.localStorage): boolean {
