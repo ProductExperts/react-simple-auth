@@ -17,7 +17,7 @@ export interface IProvider<T> {
 }
 
 export interface IAuthenticationService {
-  acquireTokenAsync<T>(provider: IProvider<T>, storage?: Storage, localWindow?: Window): Promise<T>
+  acquireTokenAsync<T>(productName: string, provider: IProvider<T>, storage?: Storage, localWindow?: Window): Promise<T>
 
   restoreSession<T>(provider: IProvider<T>, storage?: Storage): T | undefined
 
@@ -28,6 +28,7 @@ export interface IAuthenticationService {
 
 export const service: IAuthenticationService = {
   acquireTokenAsync: function<T>(
+      productName: string,
     provider: IProvider<T>,
     storage: Storage = window.localStorage,
     localWindow: Window = window
@@ -67,10 +68,10 @@ export const service: IAuthenticationService = {
         if (!loginWindow) {
           reject(
             new Error(
-              `React Simple Auth: Login window couldn't be opened, check popup permissions in the browser`
+              `${productName}: Login window couldn't be opened, check popup permissions in the browser`
             )
-          )
-          return
+          );
+          return;
         }
 
         // If window is still open check again later
@@ -86,7 +87,7 @@ export const service: IAuthenticationService = {
         if (typeof redirectUrl !== 'string' || redirectUrl.length === 0) {
           reject(
             new Error(
-              `React Simple Auth: Login window was closed by the user or authentication was incomplete and never reached final redirect page.`
+              `${productName}: Login window was closed by the user or authentication was incomplete and never reached final redirect page.`
             )
           )
           return
