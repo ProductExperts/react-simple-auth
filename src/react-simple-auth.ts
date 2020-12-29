@@ -53,29 +53,30 @@ export const service: IAuthenticationService = {
     if (loginWindow) {
       localWindow.addEventListener('message', (event: MessageEvent) => {
         const origin = provider.getOrigin()
+        // console.log(event.origin);
         if (origin && event.origin !== origin) {
           return
         }
+        // console.log(event.data);
         storage.setItem(requestKey, event.data)
         let reply: String = 'done'
         // @ts-ignore
-        event.source.postMessage(reply, event.origin)
+        if (!loginWindow.closed) {
+          loginWindow.postMessage(reply, event.origin)
+        }
       })
     }
     return new Promise<any>((resolve, reject) => {
       // Poll for when the is closed
       const checkWindow = (loginWindow: Window | null) => {
         if (!loginWindow) {
-          reject(
-            new Error(
-              `${productName}: Login window couldn't be opened, check popup permissions in the browser`
-            )
-          );
+          reject(false);
           return;
         }
 
         // If window is still open check again later
         if (!loginWindow.closed) {
+          // console.log("timer expired");
           setTimeout(() => checkWindow(loginWindow), 100)
           return
         }
