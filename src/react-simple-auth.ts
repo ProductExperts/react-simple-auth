@@ -51,20 +51,38 @@ export const service: IAuthenticationService = {
       .join(',')
     const loginWindow = localWindow.open(oauthAuthorizeUrl, requestKey, windowOptionString)
     if (loginWindow) {
-      localWindow.addEventListener('message', (event: MessageEvent) => {
+
+      const callback = (event: MessageEvent) => {
         const origin = provider.getOrigin()
         // console.log(event.origin);
         if (origin && event.origin !== origin) {
           return
         }
+        if (!event.source){
+          return;
+        }
+
+        let eventSource = event.source as Window;
+        if (eventSource.self !== eventSource){
+          /* this message is not from the window */
+          return;
+        }
+        if (eventSource.name !== requestKey){
+          return;
+        }
+        if (loginWindow.closed) {
+          localWindow.removeEventListener('message', callback);
+          return;
+        }
         // console.log(event.data);
         storage.setItem(requestKey, event.data)
         let reply: String = 'done'
         // @ts-ignore
-        if (!loginWindow.closed) {
-          loginWindow.postMessage(reply, event.origin)
-        }
-      })
+        loginWindow.postMessage(reply, event.origin)
+        localWindow.removeEventListener('message', callback);
+
+      };
+      localWindow.addEventListener('message', callback);
     }
     return new Promise<any>((resolve, reject) => {
       // Poll for when the is closed
